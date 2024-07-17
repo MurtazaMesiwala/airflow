@@ -3,7 +3,7 @@ from airflow.hooks.base import BaseHook
 from airflow.sensors.base import PokeReturnValue
 from datetime import datetime
 from airflow.operators.python import PythonOperator
-from include.stock_market.tasks import _get_stock_prices
+from include.stock_market.tasks import _get_stock_prices, _store_prices
 import requests
 
 SYMBOL = 'aapl'
@@ -31,6 +31,12 @@ def stock_market():
         op_kwargs={'url': '{{ task_instance.xcom_pull(task_ids="is_api_available") }}','symbol':SYMBOL}
     )
     
-    is_api_available() >> get_stock_prices
+    store_prices = PythonOperator(
+        task_id="store_prices",
+        python_callable=_store_prices,
+        op_kwargs={'stock':'{{ task_instance.xcom_pull(task_ids="get_stock_prices") }}'}
+    )
+    
+    is_api_available() >> get_stock_prices >> store_prices
 
 stock_market()
